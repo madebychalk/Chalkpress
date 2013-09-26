@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__FILE__) . '/utilities/chalk_utils.php';
+require_once dirname(__FILE__) . '/utilities/chalk_menu.php';
 
 class ChalkPress extends ChalkUtils {
   
@@ -31,26 +32,64 @@ class ChalkPress extends ChalkUtils {
   }
 
   /**
-    * add_notice
+    * require_theme_menus
     *
-    * echos message to user unless the correct ChalkPress directory structure exists
-    *
+    * loads all the php files located in the theme menu directory
+    * executes the add_menus method for each file.
     */
-  public static function add_notice() {
-    echo "<div class=\"error\"><p>Could not find correct directories in current theme.</p></div>";
+  public static function require_theme_menus() {
+    self::get_dir( self::theme_menus_path(), array(__CLASS__, 'register_theme_menu'), false );
   }
 
   /**
-    * add_menus
+    * register_menu
     *
     * registers a menu for use within wordpress
     *
     * @param $menu Array a valid wp menu configuration object
     * @param $name String name under which the menu will be registered
     */
-  public static function add_menus($menu, $name) {
-    self::$menus[$name] = $menu;
-    register_nav_menu($name, $menu['menu']);
+  public static function register_theme_menu($php_txt) {
+    $classes = self::get_php_classes($php_txt);
+
+    eval("?>$php_txt");
+
+    if( is_array($classes) ) {
+      foreach($classes as $class) {
+        self::get_theme_menu($class);
+      }
+    } else {
+      self:get_theme_menu($classes);
+    }
+  }
+
+  /**
+    * get_theme_menu
+    *
+    * returns or instantiates a new menu location
+    *
+    * @param $class_name Class used to create the menu
+    */
+  public static function get_theme_menu($class_name) {
+    $menu_name = self::humanize($class_name);
+
+    if( !isset(self::$menus[$menu_name]) ) {
+      self::$menus[$menu_name] = new $class_name;
+      register_nav_menu( $class_name, $menu_name );
+    }
+
+    return self::$menus[$menu_name];
+  }
+
+  /**
+    * display_theme_menu
+    *
+    * used on the front end to display a menu
+    *
+    * @param $menu_name Name of the menu to display, same string as shown in wp-admin
+    */ 
+  public static function display_theme_menu($menu_name) {
+    wp_nav_menu( self::$menus[$menu_name]->menu );
   }
 
   /**
@@ -73,17 +112,7 @@ class ChalkPress extends ChalkUtils {
     * will set up global functions
     */
   public static function require_helpers() {
-    $helpers = self::list_dir( self::helpers_path() );
-
-    if( is_array($helpers) ) {
-      foreach($helpers as $helper) {
-        $php_txt = file_get_contents( "$helper" );
-        $classes = self::get_php_classes($php_txt);
-        
-        eval("?>$php_txt");
-        self::register_helpers($classes);
-      }
-    }
+    self::get_dir( self::helpers_path(), array(__CLASS__, 'register_helper') );
   }
 
   /*
@@ -93,16 +122,17 @@ class ChalkPress extends ChalkUtils {
    *
    * @param $classes Array || String classes from which to generate methods
    */
-  public static function register_helpers($classes) {
-    $helper = null;
+  public static function register_helper($php_txt) {
+    $classes = self::get_php_classes($php_txt);
+
+    eval("?>$php_txt");
 
     if( is_array($classes) ) {
       foreach($classes as $class) {
-        $helper = self::get_helper($class);
-        
+        self::get_helper($class);
       }
     } else {
-      $helper = self::get_helper($classes);
+      self::get_helper($classes);
     }
   }
 
@@ -133,16 +163,6 @@ class ChalkPress extends ChalkUtils {
     self::require_once_dir("$post_types_path", array(__CLASS__, 'add_post_types'), false );
   }
 
-  /**
-    * require_theme_menus
-    *
-    * loads all the php files located in the theme menu directory
-    * executes the add_menus method for each file.
-    */
-  public static function require_theme_menus() {
-    $menus_path = self::theme_menus_path();
-    self::require_once_dir("$menus_path", array(__CLASS__, 'add_menus'), false );
-  }
 
   /**
     * require_theme_helpers
@@ -221,10 +241,9 @@ class ChalkPress extends ChalkUtils {
    * __callStatic magic method 
    *
    * This method is executed if a non-existant static method is called
-   * on the ChalkPress class, checks to see if a menu exists with the
-   * same name and displays it
+   * on the ChalkPress class, checks to see if a helper method exists with the
+   * same name and executes it
    *
-   * @example Chalkpress::main_menu();
    *
    * @param $name String name of the method that was requested
    * @param $arguments Array arguments passed into the method call
@@ -232,19 +251,10 @@ class ChalkPress extends ChalkUtils {
    * @return nada
    */
   public static function __callStatic($name, $arguments) {
-    if( preg_match('/_menu$/', $name) ) {
-      // it's a menu
-      $name = preg_replace('/_menu$/', "", $name);
-      if( array_key_exists($name, self::$menus) ) {
-        wp_nav_menu( self::$menus[$name] );
-      }
-    } else {
-      // it's a helper
-      foreach(self::$helpers as $helper) {
-        $methods = get_class_methods($helper);
-        if( in_array($name, $methods) ) {
-          return call_user_func_array(array($helper, $name), $arguments);
-        }
+    foreach(self::$helpers as $helper) {
+      $methods = get_class_methods($helper);
+      if( in_array($name, $methods) ) {
+        return call_user_func_array(array($helper, $name), $arguments);
       }
     }
   }
