@@ -12,7 +12,6 @@ class ChalkPress extends ChalkUtils {
   private static $menus       = array();
   private static $post_types  = array();
   private static $helpers     = array();
-  private static $mce_styles  = array();
 
   /**
     * add_notice
@@ -75,6 +74,8 @@ class ChalkPress extends ChalkUtils {
 
     if( !isset(self::$menus[$menu_name]) ) {
       self::$menus[$menu_name] = new $class_name;
+      self::$menus[$menu_name]->set_menu_params();
+
       register_nav_menu( $class_name, $menu_name );
     }
 
@@ -90,19 +91,6 @@ class ChalkPress extends ChalkUtils {
     */ 
   public static function display_theme_menu($menu_name) {
     wp_nav_menu( self::$menus[$menu_name]->menu );
-  }
-
-  /**
-    * add_post_types
-    *
-    * registers post types for use within wordpress
-    *
-    * @param $post_type Array a valid wp post type configuration object
-    * @param $name String name of the new post_type
-    */
-  public static function add_post_types($post_type, $name) {
-    self::$post_types[$name] = $post_type;
-    register_post_type($name, $post_type);
   }
 
   /**
@@ -159,10 +147,49 @@ class ChalkPress extends ChalkUtils {
     * exectutes the add_post_types method for each file
     */
   public static function require_theme_post_types() {
-    $post_types_path = self::theme_post_types_path();
-    self::require_once_dir("$post_types_path", array(__CLASS__, 'add_post_types'), false );
+    self::get_dir( self::theme_post_types_path(), array(__CLASS__, 'add_post_type') );
   }
 
+  /**
+    * add_post_types
+    *
+    * registers post types for use within wordpress
+    *
+    * @param $post_type Array a valid wp post type configuration object
+    * @param $name String name of the new post_type
+    */
+  public static function add_post_type($php_txt) {
+    $classes = self::get_php_classes($php_txt);
+    eval("?>$php_txt");
+
+    if( is_array($classes) ) {
+      foreach($classes as $class) {
+        self::get_post_type($class);
+      }
+    } else {
+      self::get_post_type($classes);
+    }
+  }
+
+  /*
+   * get_post_type
+   *
+   * return reference or try to instantiate a post_type
+   *
+   * @param $class_name String name of the class to find/instantiate
+   *
+   * @return Class
+   */
+  public static function get_post_type($class_name) {
+    $post_type_name = strtolower($class_name);
+
+    if( !isset(self::$post_types[$post_type_name]) ) {
+      self::$post_types[$post_type_name] = new $class_name;
+      register_post_type($post_type_name, self::$post_types[$post_type_name]->post_type);
+    }
+
+    return self::$post_types[$post_type_name];
+  }
 
   /**
     * require_theme_helpers

@@ -3,7 +3,7 @@
 class ChalkMenu {
   public $menu = array();
 
-  public function __construct() {
+  public function set_menu_params() {
     $this->menu['menu'] = get_class($this);
     $this->menu['fallback_cb'] = array($this, 'fallback');
   }
