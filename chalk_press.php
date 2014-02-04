@@ -23,11 +23,41 @@ class ChalkPress extends ChalkUtils {
     */
   public static function initialize($cb = null) {
       self::require_helpers();
+      self::require_cmb();
+      self::require_abstract_components();
+
       self::chalkpress_require_features();
 
       if( is_callable($cb) ) {
         call_user_func($cb);
       }
+  }
+
+
+  public static function require_abstract_components() {
+    self::require_once_dir( self::abstract_components_path() );
+  }
+
+  /**
+    * require_chalkpress_component
+    *
+    * load custom classes and register component
+    */
+
+  public static function require_chalkpress_component($php_txt) {
+    $class = self::get_php_classes($php_txt);
+
+    if( is_array( $class ) ) $class = $class[0];
+
+    eval("?>$php_txt");
+
+    $type = get_parent_class($class);
+
+    switch($type) {
+      case 'ChalkpressPostType':
+        self::get_post_type($class);
+        break;
+    }
   }
 
   /**
@@ -124,6 +154,17 @@ class ChalkPress extends ChalkUtils {
     }
   }
 
+  /**
+    * require_cmb
+    *
+    * loads cmb dependency in chalkpress
+    * cmb is in a submodule git submodule init
+    * if you are getting not found errors
+    */
+  public static function require_cmb() {
+    require_once self::join_paths( self::vendor_path(), 'metabox', 'init.php');
+  }
+
   /*
    * get_helper
    *
@@ -147,28 +188,7 @@ class ChalkPress extends ChalkUtils {
     * exectutes the add_post_types method for each file
     */
   public static function require_theme_post_types() {
-    self::get_dir( self::theme_post_types_path(), array(__CLASS__, 'add_post_type') );
-  }
-
-  /**
-    * add_post_types
-    *
-    * registers post types for use within wordpress
-    *
-    * @param $post_type Array a valid wp post type configuration object
-    * @param $name String name of the new post_type
-    */
-  public static function add_post_type($php_txt) {
-    $classes = self::get_php_classes($php_txt);
-    eval("?>$php_txt");
-
-    if( is_array($classes) ) {
-      foreach($classes as $class) {
-        self::get_post_type($class);
-      }
-    } else {
-      self::get_post_type($classes);
-    }
+    self::get_dir( self::theme_post_types_path(), array(__CLASS__, 'require_chalkpress_component') );
   }
 
   /*
@@ -183,10 +203,8 @@ class ChalkPress extends ChalkUtils {
   public static function get_post_type($class_name) {
     $post_type_name = strtolower($class_name);
 
-    if( !isset(self::$post_types[$post_type_name]) ) {
+    if( !isset(self::$post_types[$post_type_name]) )
       self::$post_types[$post_type_name] = new $class_name;
-      register_post_type($post_type_name, self::$post_types[$post_type_name]->post_type);
-    }
 
     return self::$post_types[$post_type_name];
   }
@@ -247,6 +265,25 @@ class ChalkPress extends ChalkUtils {
   }
 
   /**
+    * vendor_path
+    *
+    * @return String path to the chalkpress vendor directory
+    */
+  public static function vendor_path() {
+    return self::join_paths(dirname(__FILE__), 'vendor');
+  }
+
+  
+  /**
+    * abstract_components_path
+    *
+    * @return String path to the chalkpress components directory
+    */
+  public static function abstract_components_path() {
+    return self::join_paths(dirname(__FILE__), 'components');
+  }
+
+  /**
     * chalkpress_require_features
     * 
     * Checks for directories and requires files if they are found
@@ -254,6 +291,7 @@ class ChalkPress extends ChalkUtils {
     * @return Bool 
     */
   public static function chalkpress_require_features() {
+
     if( is_dir( self::theme_helpers_path() ) ) 
       self::require_theme_helpers(); 
 
