@@ -13,33 +13,6 @@ class ChalkUtils {
   }
   
   /**
-   * require_once_dir
-   *
-   * @param $path String  path to directory
-   * @param $cb   Func    callback function after file is loaded 
-   * @param $ext  Bool    should the callback receive the filename with extension
-   *
-   * @return nada
-   */
-  public static function require_once_dir($path, $cb = false, $ext = true) {
-    $list_files = self::list_dir($path);
-    if (is_array($list_files)) {
-      foreach ($list_files as $filename) {
-        $ret = require_once $filename; 
-        $filename = preg_replace( "/\/.*\//", "", $filename );
-        
-        if( !$ext ) {
-          $filename = preg_replace( "/\..*$/", "", $filename );
-        } 
-
-        if( is_callable($cb) ) {
-          call_user_func($cb, $ret, $filename);
-        }
-      } 
-    }
-  }
-
-  /**
    * get_once_dir
    *
    * @param $path String  path to directory
@@ -48,7 +21,7 @@ class ChalkUtils {
    *
    * @return nada
    */
-  public static function get_dir($path, $cb = false, $ext = true) {
+  public static function require_once_dir($path, $cb = false, $ext = true) {
     $list_files = self::list_dir( $path );
 
     if( is_array($list_files) ) {
@@ -62,6 +35,8 @@ class ChalkUtils {
 
         if( is_callable($cb) ) {
           call_user_func($cb, $php_txt, $filename);
+        } else {
+          eval("?>$php_txt");
         }
       }
     }

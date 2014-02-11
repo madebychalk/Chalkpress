@@ -1,18 +1,26 @@
 <?php
 
-class AssetTagHelper {
+class AssetTagHelper extends ChalkpressHelper {
   function AssetTagHelper() {}
 
   public function library_url($path) {
     return ChalkPress::join_paths( get_stylesheet_directory_uri(), "library", $path );
   }
 
+  public function library_path($path) {
+    return ChalkPress::join_paths( get_stylesheet_directory(), "library", $path );
+  }
+
   public function image_url($name) {
     return $this->library_url( array('images', $name) );
   }
 
+  public function image_path($name) {
+    return $this->library_path( array('images', $name) );
+  }
+
   public function javascript_url($name, $vendor = false) {
-    $dir = $vendor ? "vendor/js" : "js";
+    $dir = $vendor ? "vendor" : "js";
     return $this->library_url("$dir/$name");
   }
 
