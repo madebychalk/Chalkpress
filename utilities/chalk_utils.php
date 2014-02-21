@@ -2,6 +2,8 @@
 
 class ChalkUtils {
 
+  private static $camel_reg = "/(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])/";
+
   /**
    * list_dir
    *
@@ -108,27 +110,6 @@ class ChalkUtils {
     return self::get_php_tokens($txt, T_CLASS);
   }
 
-/**
- * extend 
- *
- * @param $args Arrays array to be extended and extension
- *
- * @return array $extended
- **/
-  public static function extend() {
-    $args = func_get_args();
-    $extended = array();
-    if(is_array($args) && count($args)) {
-      foreach($args as $array) {
-        if(is_array($array)) {
-          $extended = array_merge($extended, $array);
-        }
-      }
-    }
-    return $extended;
-  }
-  
-
   /*
    * humanize
    *
@@ -137,10 +118,19 @@ class ChalkUtils {
    * @return String humanized string
    */
   public static function humanize($string) {
-    $reg = "/(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])/";
-    return preg_replace($reg, " ", $string);
+    return preg_replace(self::$camel_reg, " ", $string);
   }
 
+  /*
+   * underscore
+   *
+   * @param $txt String CamelCase string to underscore
+   *
+   * @return String underscored string
+   */
+  public static function underscore($string) {
+    return preg_replace(self::$camel_reg, "_", $string);
+  }
 
   /*
    * pluralize

@@ -11,6 +11,7 @@ class ChalkPress extends ChalkUtils {
   private static $ChalkpressMenu       = array();
   private static $ChalkpressPostType   = array();
   private static $ChalkpressHelper     = array();
+  private static $ChalkpressMetabox    = array();
 
   /**
     * add_notice
@@ -21,9 +22,9 @@ class ChalkPress extends ChalkUtils {
     *
     */
   public static function initialize($cb = null) {
-      self::require_cmb();
       self::require_abstract_components();
       self::chalkpress_require_features();
+      self::require_cmb();
 
       if( is_callable($cb) ) {
         call_user_func($cb);
@@ -63,11 +64,12 @@ class ChalkPress extends ChalkUtils {
     $component_name = strtolower($class);
     $type = ($type) ? $type : get_parent_class($class);
 
-    if( !isset( self::${$type}[$component_name] ) )
+    if( !isset( self::${$type}[$component_name] ) ) {
       self::${$type}[$component_name] = new $class;
+      self::${$type}[$component_name]->init();
+    }
 
     return self::${$type}[$component_name];
-    
   }
 
   /**
@@ -95,17 +97,24 @@ class ChalkPress extends ChalkUtils {
     * require_theme_post_types
     *
     * loads all the php files located in the theme post type directory
-    * exectutes the add_post_types method for each file
     */
   public static function require_theme_post_types() {
     self::require_once_dir( self::theme_post_types_path(), array(__CLASS__, 'require_chalkpress_component') );
   }
 
   /**
+    * require_theme_metaboxes
+    *
+    * loads all the php files located in the theme metabox directory
+    */
+  public static function require_theme_metaboxes() {
+    self::require_once_dir( self::theme_metaboxes_path(), array(__CLASS__, 'require_chalkpress_component') );
+  }
+
+  /**
     * require_theme_menus
     *
     * loads all the php files located in the theme menu directory
-    * executes the add_menus method for each file.
     */
   public static function require_theme_menus() {
     self::require_once_dir( self::theme_menus_path(), array(__CLASS__, 'require_chalkpress_component') );
@@ -116,10 +125,9 @@ class ChalkPress extends ChalkUtils {
     *
     * used on the front end to display a menu
     *
-    * @param $menu_name Name of the menu to display, same string as shown in wp-admin
     */ 
   public static function display_theme_menu($menu_name) {
-    wp_nav_menu( self::get_chalkpress_component('PrimaryNavigation')->config );
+    wp_nav_menu( self::get_chalkpress_component($menu_name)->config );
   }
 
 
@@ -179,6 +187,15 @@ class ChalkPress extends ChalkUtils {
   }
 
   /**
+    * theme_metabox_path
+    *
+    * @return String path to the metabox directory
+    */
+  public static function theme_metaboxes_path() {
+    return self::join_paths(get_stylesheet_directory(), 'library', 'metaboxes');
+  }
+
+  /**
     * vendor_path
     *
     * @return String path to the chalkpress vendor directory
@@ -215,6 +232,9 @@ class ChalkPress extends ChalkUtils {
 
     if( is_dir( self::theme_post_types_path() ) )
       self::require_theme_post_types();
+
+    if( is_dir( self::theme_metaboxes_path() ) )
+      self::require_theme_metaboxes();
   }
   
   /**

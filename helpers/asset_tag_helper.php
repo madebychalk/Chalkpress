@@ -1,7 +1,11 @@
 <?php
 
 class AssetTagHelper extends ChalkpressHelper {
-  function AssetTagHelper() {}
+  const BOOLEAN_ATTRIBUTES = "disabled readonly multiple checked autobuffer autoplay controls loop selected hidden scoped async defer reversed ismap seemless muted required autofocus novalidate formnovalidate open pubdate itemscope";
+
+  public function __construct() {
+    $this->boolean_attributes = explode(" ", self::BOOLEAN_ATTRIBUTES); 
+  }
 
   public function library_url($path) {
     return ChalkPress::join_paths( get_stylesheet_directory_uri(), "library", $path );
@@ -24,35 +28,77 @@ class AssetTagHelper extends ChalkpressHelper {
     return $this->library_url("$dir/$name");
   }
 
+  public function tag_option($key, $val) {
+    if( is_array($val) )
+      $val = implode(" ", $val);
+
+    return sprintf('%s="%s"', $key, $val);
+  }
+
   public function tag_options($options = null) {
     $html_content = array();
 
-    if( is_null($options) ) {
-      return false;
-    } elseif( is_array($options) ) {
+    if( is_null($options) )
+      return ' ';
+
+    if( is_array($options) ) {
       foreach ($options as $key => $val) {
-        $html_content[] = $key . "=" . "\"". $val . "\""; 
+        if( in_array($key, $this->boolean_attributes) )
+          $html_content[] = $key;
+        else
+          $html_content[] = $this->tag_option($key, $val);
       }
+      return ' ' . join(" ", $html_content);
     }
 
-    return join(" ", $html_content);
+    return ' ' . $options;
   }
 
-  public function content_tag($name, $options = null, $content = null) {
-    $html_content = '<' . $name;
+  public function tag($name, $options, $open = true, $echo = false) {
+    $tag = sprintf("<%s%s%s>", $name, $this->tag_options($options), $open ? "" : "/"); 
 
-    if( $attrs = $this->tag_options($options) )
-      $html_content .= " " . $attrs;
+    if( $echo )
+      echo $tag;
 
-    if( is_null($content) )
-      return $html_content .= "/>";
-
-    $html_content .= ">";
-    $html_content .= htmlentities($content);
-
-    return $html_content .= "</" . $name . ">";
+    return $tag;
   }
 
+  public function content_tag($name, $options_or_content = null, $content = null) {
+    if( is_null($content) ) {
+      $content = $options_or_content;
+      $options = null;
+    } else {
+      $options = $options_or_content;
+    }
+
+    return sprintf('<%s%s>%s</%s>', $name, $this->tag_options($options), htmlentities($content), $name);
+  }
+
+  public function hidden_field_tag($attrs = null, $echo = true) {
+    $options = array('type' => 'hidden');
+
+    if( is_array($attrs) )
+      $options = array_merge($options, $attrs);
+
+    $tag = $this->tag('input', $options);
+
+    if($echo) echo $tag;
+
+    return $tag;
+  }
+
+  public function submit_button_tag($attrs = null, $content = "submit", $echo = true) {
+    $options = array('type' => 'submit');
+
+    if( is_array($attrs) )
+      $options = array_merge($options, $attrs);
+
+    $tag = $this->content_tag('button', $options, $content);
+
+    if($echo) echo $tag;
+
+    return $tag;
+  }
   public function image_tag($src, $attrs = null, $echo = true) {
     $options = array("src" => $this->image_url($src));
 
@@ -89,7 +135,7 @@ class AssetTagHelper extends ChalkpressHelper {
     if( is_array($attrs) )
       $options = array_merge($options, $attrs);
 
-    $tag = $this->content_tag('link', $options);
+    $tag = $this->tag('link', $options);
 
     if($echo) echo $tag;
 

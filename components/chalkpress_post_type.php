@@ -6,7 +6,7 @@ abstract class ChalkpressPostType {
   private   $post_name       = null;
   protected $singular        = null;
   protected $plural          = null;
-  protected $defaults        = array(
+  protected static $defaults = array(
     'description'         => '',
     'public'              => false,
     'menu_position'       => 10,
@@ -23,17 +23,15 @@ abstract class ChalkpressPostType {
     'has_archive'         => false
   );
 
-  public function __construct() {
+  public function init() {
     $this->post_name = Chalkpress::humanize( get_called_class() );
 
-    $values = is_array( $this->configuration() ) ? $this->configuration() : array();
-    $config = Chalkpress::extend( $this->defaults, $values );
+    $this->config = wp_parse_args($this->configuration(), self::$defaults);
       
     if( is_null($this->singular) ) $this->singular = $this->post_name;
     if( is_null($this->plural)   ) $this->plural   = Chalkpress::pluralize($this->post_name);
 
-    $config['labels'] = $this->assign_labels();
-    $this->config = $config;
+    $this->config['labels'] = $this->assign_labels();
 
     register_post_type($this->post_name, $this->config);
   }

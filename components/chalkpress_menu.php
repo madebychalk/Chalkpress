@@ -2,8 +2,8 @@
 
 abstract class ChalkpressMenu {
   public $config      = null;
-  public $menu_name   = null;
-  protected $defaults = array(
+
+  protected static $defaults = array(
     'theme_location'  => '',
     'menu'            => '',
     'container'       => false,
@@ -22,16 +22,11 @@ abstract class ChalkpressMenu {
     'walker'          => ''
   );
 
-  public function __construct() {
-    $this->menu_name = Chalkpress::humanize( get_called_class() );
-
-    $values = is_array( $this->configuration() ) ? $this->configuration() : array();
-    $this->config = Chalkpress::extend( $this->defaults, $values );
-
-    if( !isset( $this->config['fallback_cb'] ) )
-      $this->config['fallback_cb'] = array($this, 'fallback');
+  public function init() {
+    $this->config = wp_parse_args($this->configuration(), self::$defaults); // Chalkpress::extend( $this->defaults, $this->configuration() );
+    $this->config['fallback_cb'] = array($this, 'fallback');
       
-    register_nav_menu( get_called_class(), $this->menu_name );
+    register_nav_menu( get_called_class(), Chalkpress::humanize( get_called_class() ) );
   }
 
   public function fallback() {
