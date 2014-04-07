@@ -143,8 +143,7 @@ abstract class ChalkpressMetabox {
   }
 
   public function insertion_form() {
-    $fields = $this->fields();
-    $form = sprintf( $this->form_tag(), implode("\n", $fields) );
+    $form = sprintf( $this->form_tag(), implode("\n", $this->fields()) );
   
     echo $form;
   }

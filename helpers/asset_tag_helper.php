@@ -105,7 +105,7 @@ class AssetTagHelper extends ChalkpressHelper {
     if( is_array($attrs) ) 
       $options = array_merge($options , $attrs);
 
-    $tag = $this->content_tag('img', $options);
+    $tag = $this->tag('img', $options);
 
     if($echo) echo $tag;
 
