@@ -1,6 +1,6 @@
 <?php
 
-class AdminMenuHelper {
+class AdminMenuHelper extends ChalkpressHelper {
 
   private function get_slug($section) {
     return $section[2];

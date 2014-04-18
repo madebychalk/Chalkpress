@@ -2,6 +2,8 @@
 
 class ChalkUtils {
 
+  private static $camel_reg = "/(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])/";
+
   /**
    * list_dir
    *
@@ -13,33 +15,6 @@ class ChalkUtils {
   }
   
   /**
-   * require_once_dir
-   *
-   * @param $path String  path to directory
-   * @param $cb   Func    callback function after file is loaded 
-   * @param $ext  Bool    should the callback receive the filename with extension
-   *
-   * @return nada
-   */
-  public static function require_once_dir($path, $cb = false, $ext = true) {
-    $list_files = self::list_dir($path);
-    if (is_array($list_files)) {
-      foreach ($list_files as $filename) {
-        $ret = require_once $filename; 
-        $filename = preg_replace( "/\/.*\//", "", $filename );
-        
-        if( !$ext ) {
-          $filename = preg_replace( "/\..*$/", "", $filename );
-        } 
-
-        if( is_callable($cb) ) {
-          call_user_func($cb, $ret, $filename);
-        }
-      } 
-    }
-  }
-
-  /**
    * get_once_dir
    *
    * @param $path String  path to directory
@@ -48,7 +23,7 @@ class ChalkUtils {
    *
    * @return nada
    */
-  public static function get_dir($path, $cb = false, $ext = true) {
+  public static function require_once_dir($path, $cb = false, $ext = true) {
     $list_files = self::list_dir( $path );
 
     if( is_array($list_files) ) {
@@ -62,6 +37,8 @@ class ChalkUtils {
 
         if( is_callable($cb) ) {
           call_user_func($cb, $php_txt, $filename);
+        } else {
+          eval("?>$php_txt");
         }
       }
     }
@@ -140,9 +117,89 @@ class ChalkUtils {
    *
    * @return String humanized string
    */
-  public static function humanize($txt) {
-    $reg = "/(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])/";
-    return preg_replace($reg, " ", $txt);
+  public static function humanize($string) {
+    return preg_replace(self::$camel_reg, " ", $string);
   }
 
+  /*
+   * underscore
+   *
+   * @param $txt String CamelCase string to underscore
+   *
+   * @return String underscored string
+   */
+  public static function underscore($string) {
+    return preg_replace(self::$camel_reg, "_", $string);
+  }
+
+  /*
+   * pluralize
+   *
+   * @param $txt String string to pluralize
+   *
+   * @return String pluralized string
+   */
+  public static function pluralize($string) {
+    $plural = array(
+      array( '/(quiz)$/i',               "$1zes"   ),
+      array( '/^(ox)$/i',                "$1en"    ),
+      array( '/([m|l])ouse$/i',          "$1ice"   ),
+      array( '/(matr|vert|ind)ix|ex$/i', "$1ices"  ),
+      array( '/(x|ch|ss|sh)$/i',         "$1es"    ),
+      array( '/([^aeiouy]|qu)y$/i',      "$1ies"   ),
+      array( '/([^aeiouy]|qu)ies$/i',    "$1y"     ),
+      array( '/(hive)$/i',               "$1s"     ),
+      array( '/(?:([^f])fe|([lr])f)$/i', "$1$2ves" ),
+      array( '/sis$/i',                  "ses"     ),
+      array( '/([ti])um$/i',             "$1a"     ),
+      array( '/(buffal|tomat)o$/i',      "$1oes"   ),
+      array( '/(bu)s$/i',                "$1ses"   ),
+      array( '/(alias|status)$/i',       "$1es"    ),
+      array( '/(octop|vir)us$/i',        "$1i"     ),
+      array( '/(ax|test)is$/i',          "$1es"    ),
+      array( '/s$/i',                    "s"       ),
+      array( '/$/',                      "s"       )
+    );
+
+    $irregular = array(
+      array( 'move',   'moves'    ),
+      array( 'sex',    'sexes'    ),
+      array( 'child',  'children' ),
+      array( 'man',    'men'      ),
+      array( 'person', 'people'   )
+    );
+
+    $uncountable = array( 
+      'sheep', 
+      'fish',
+      'series',
+      'species',
+      'money',
+      'rice',
+      'information',
+      'equipment'
+    );
+
+    $words = explode(" ", $string);
+    $last  = array_pop($words);
+
+    $string = implode(" ", $words);
+
+    if ( in_array( strtolower( $string ), $uncountable ) )
+      return $string . " " . $last;
+
+    foreach ( $irregular as $noun ) {
+    if ( strtolower( $last ) == $noun[0] )
+      return $string . " " . $noun[1];
+    }
+
+    foreach ( $plural as $pattern ) {
+      if ( preg_match( $pattern[0], $last ) ) {
+        $plural = preg_replace( $pattern[0], $pattern[1], $last );
+        return $string . " " . $plural;
+      }
+    }
+
+    return $string . " " . $last;
+  }
 }
